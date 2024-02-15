@@ -51,7 +51,7 @@ const isRunning = ()=>true;
 const soundEnabledSelector = ()=>false;
 const canPlaySoundSelector = ()=>false;
 const shellNameSelector = () => 'Random';
-const shellSizeSelector = () => 3;
+let shellSizeSelector = 3;
 const finaleSelector = () => false;
 let skyLightingSelector = SKY_LIGHT_NORMAL;
 const scaleFactorSelector = () => 1;
@@ -406,10 +406,6 @@ const shellTypes = {
 
 const shellNames = Object.keys(shellTypes);
 
-function init() {
-	appNodes.stageContainer.classList.remove('remove');
-}
-
 function fitShellPositionInBoundsH(position) {
 	const edge = 0.18;
 	return (1 - edge*2) * position + edge;
@@ -428,7 +424,7 @@ function getRandomShellPositionV() {
 }
 
 function getRandomShellSize() {
-	const baseSize = shellSizeSelector();
+	const baseSize = shellSizeSelector;
 	const maxVariance = Math.min(2.5, baseSize);
 	const variance = Math.random() * maxVariance;
 	const size = baseSize - variance;
@@ -443,7 +439,7 @@ function getRandomShellSize() {
 }
 
 function launchShellFromConfig(event) {
-	const shell = new Shell(shellFromConfig(shellSizeSelector()));
+	const shell = new Shell(shellFromConfig(shellSizeSelector));
 	const w = mainStage.width;
 	const h = mainStage.height;
 	
@@ -494,7 +490,7 @@ function seqTwoRandom() {
 
 function seqTriple() {
 	const shellType = randomFastShell();
-	const baseSize = shellSizeSelector();
+	const baseSize = shellSizeSelector;
 	const smallSize = Math.max(0, baseSize - 1.25);
 	const offset = Math.random() * 0.08 - 0.04;
 	const shell1 = new Shell(shellType(baseSize));
@@ -518,7 +514,7 @@ function seqTriple() {
 
 function seqPyramid() {
 	const barrageCountHalf = IS_DESKTOP ? 7 : 4;
-	const largeSize = shellSizeSelector();
+	const largeSize = shellSizeSelector;
 	const smallSize = Math.max(0, largeSize - 3);
 	const randomMainShell = Math.random() < 0.78 ? crysanthemumShell : ringShell;
 	const randomSpecialShell = randomShell;
@@ -560,7 +556,7 @@ function seqSmallBarrage() {
 	seqSmallBarrage.lastCalled = Date.now();
 	const barrageCount = IS_DESKTOP ? 11 : 5;
 	const specialIndex = IS_DESKTOP ? 3 : 1;
-	const shellSize = Math.max(0, shellSizeSelector() - 2);
+	const shellSize = Math.max(0, shellSizeSelector - 2);
 	const randomMainShell = Math.random() < 0.78 ? crysanthemumShell : ringShell;
 	const randomSpecialShell = randomFastShell();
 	function launchShell(x, useSpecial) {
@@ -621,7 +617,7 @@ function startSequence() {
 			return seqTwoRandom();
 		}
 		else {
-			const shell = new Shell(crysanthemumShell(shellSizeSelector()));
+			const shell = new Shell(crysanthemumShell(shellSizeSelector));
 			shell.launch(0.5, 0.5);
 			return 2400;
 		}
@@ -1338,7 +1334,7 @@ class Shell {
 
 		if (this.comet) {
 			const maxDiff = 2;
-			const sizeDifferenceFromMaxSize = Math.min(maxDiff, shellSizeSelector() - this.shellSize);
+			const sizeDifferenceFromMaxSize = Math.min(maxDiff, shellSizeSelector - this.shellSize);
 			const soundScale = (1 - sizeDifferenceFromMaxSize / maxDiff) * 0.3 + 0.7;
 			soundManager.playSound('burst', soundScale);
 		}
@@ -1593,18 +1589,9 @@ const soundManager = {
 };
 
 if (IS_HEADER) {
-	init();
+	
 } else {
-	setTimeout(() => {
-		soundManager.preload()
-		.then(
-			init,
-			reason => {
-				init();
-				return Promise.reject(reason);
-			}
-		);
-	}, 0);
+	soundManager.preload()
 }
 
 let _audioReact=true;
@@ -1634,6 +1621,10 @@ function livelyPropertyListener(name, val) {
 		isNormalQuality = quality === QUALITY_NORMAL;
 		isHighQuality = quality === QUALITY_HIGH;
 		Spark.drawWidth = quality === QUALITY_HIGH ? 0.75 : 1;
+		break;
+	case "shellSize":
+		shellSizeSelector = val;
+		console.log(shellSizeSelector);
 		break;
 	case "speed":
 		simSpeed = 2**(val/10.0);

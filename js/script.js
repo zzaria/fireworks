@@ -51,7 +51,7 @@ const isRunning = ()=>true;
 let canPlaySoundSelector = true;
 const shellNameSelector = () => 'Random';
 let shellSizeSelector = 3;
-const finaleSelector = false;
+let finaleSelector = false;
 let skyLightingSelector = SKY_LIGHT_NORMAL;
 let scaleFactorSelector = 1;
 
@@ -427,7 +427,7 @@ function seqTwoRandom() {
 	shell1.launch(0.3 + leftOffset, size1.height);
 	setTimeout(() => {
 		shell2.launch(0.7 + rightOffset, size2.height);
-	}, 100);
+	}, audioPlaying?0: 100);
 	let extraDelay = Math.max(shell1.starLife, shell2.starLife);
 	if (shell1.fallingLeaves || shell2.fallingLeaves) {
 		extraDelay = 4600;
@@ -442,8 +442,8 @@ function seqTriple() {
 	const offset = Math.random() * 0.08 - 0.04;
 	const shell1 = new Shell(shellType(baseSize));
 	shell1.launch(0.5 + offset, 0.7);
-	const leftDelay = 1000 + Math.random() * 400;
-	const rightDelay = 1000 + Math.random() * 400;
+	const leftDelay = audioPlaying? 0:1000 + Math.random() * 400;
+	const rightDelay = audioPlaying? 0:1000 + Math.random() * 400;
 	setTimeout(() => {
 		const offset = Math.random() * 0.08 - 0.04;
 		const shell2 = new Shell(shellType(smallSize));
@@ -494,7 +494,7 @@ function seqPyramid() {
 			}, delay + delayOffset);
 		}
 		count++;
-		delay += 200;
+		delay += audioPlaying? 50:200;
 	}
 	return 3400 + barrageCountHalf * 250;
 }
@@ -535,7 +535,7 @@ function seqSmallBarrage() {
 			}, delay + delayOffset);
 			count += 2;
 		}
-		delay += 200;
+		delay += audioPlaying? 10:200;
 	}
 	
 	return 3400 + barrageCount * 120;
@@ -543,9 +543,16 @@ function seqSmallBarrage() {
 seqSmallBarrage.cooldown = 15000;
 seqSmallBarrage.lastCalled = Date.now();
 
+const finaleCount = 32;
 function seqFinale() {
-	finaleSelector=true;
-	return 10;
+	let delay=audioPlaying? 70:170;
+	let count=audioPlaying? 15:finaleCount;
+	for(let i=0;i<finaleCount;i++){
+		setTimeout(() => {
+			seqRandomFastShell();
+		}, i*delay);
+	}
+	return 5000+finaleCount*170;
 }
 
 const sequences = [
@@ -557,32 +564,17 @@ const sequences = [
 	seqFinale,
 ];
 
-let isFirstSeq = true;
-const finaleCount = 32;
-let currentFinaleCount = 0;
 function startSequence() {
 	const rand = Math.random();
-	if (finaleSelector) {
-		seqRandomFastShell();
-		if (currentFinaleCount < finaleCount) {
-			currentFinaleCount++;
-			return 170;
-		}
-		else {
-			currentFinaleCount = 0;
-			finaleSelector=false;
-			return 5000;
-		}
-	}
 	
-	if (rand<0.5){
+	if (rand<0.03){
 		return seqFinale();
 	}
-	if (rand < 0.15 && Date.now() - seqSmallBarrage.lastCalled > seqSmallBarrage.cooldown) {
+	if (rand < 0.11 && Date.now() - seqSmallBarrage.lastCalled > seqSmallBarrage.cooldown) {
 		return seqSmallBarrage();
 	}
 	
-	if (rand < 0.2) {
+	if (rand < 0.15) {
 		return seqPyramid();
 	}
 	
@@ -638,7 +630,7 @@ function updateGlobals(timeStep, lag) {
 		}
 	}
 
-	if (autoLaunch) {
+	if (autoLaunch&&!audioPlaying) {
 		autoLaunchTime -= timeStep*autoLaunchFreq;
 		if (autoLaunchTime <= 0) {
 			autoLaunchTime = startSequence() * 1.25;
@@ -984,7 +976,7 @@ class Shell {
 		}
 	}
 	
-	launch(position, launchHeight) {
+	launch(position, launchHeight,fast=audioPlaying) {
 		const width = stageW;
 		const height = stageH;
 		const hpad = 60;
@@ -992,17 +984,20 @@ class Shell {
 		const minHeightPercent = 0.45;
 		const minHeight = height - height * minHeightPercent;
 		const launchX = position * (width - hpad * 2) + hpad;
-		const launchY = height;
+		let launchY = height;
 		const burstY = minHeight - (launchHeight * (minHeight - vpad));
 		const launchDistance = launchY - burstY;
 		const launchVelocity = Math.pow(launchDistance * 0.04, 0.64);
+		if(fast){
+			launchY=burstY;
+		}
 		const comet = this.comet = Star.add(
 			launchX,
 			launchY,
 			typeof this.color === 'string' && this.color !== 'random' ? this.color : COLOR.White,
 			Math.PI,
 			launchVelocity * (this.horsetail ? 1.2 : 1),
-			launchVelocity * (this.horsetail ? 100 : 400)
+			fast?10:launchVelocity * (this.horsetail ? 100 : 400)
 		);
 		comet.heavy = true;
 		comet.spinRadius = MyMath.random(0.32, 0.85);
@@ -1474,25 +1469,115 @@ if (IS_HEADER) {
 	soundManager.preload()
 }
 
-//let audioReactEnabled=true;
+let audioPlaying=false;
 let _audioReact=true;
 let backgroundImageEnabled=false;
 let backgroundImage="";
 let longExposure=false;
 let paused=false;
-//let autoLaunchEnabled=true;
 let autoLaunchFreq=1;
 let autoLaunch=true;
+let lastBass=0;
+let lastDelta=[];
+let tempPower=3;
+let recentVolume=0;
 function livelyAudioListener(audioArray) {
 	if (!_audioReact) {
 	  return;
 	}
+    let volume=audioArray.reduce((a,b)=>a+b);
+	recentVolume=Math.max(volume,recentVolume*0.97+volume*0.03);
+	audioPlaying=recentVolume>1;
+	if(!audioPlaying){
+		return;
+	}
+	const bassRange=40;
+	let bass=audioArray.slice(0,bassRange).reduce((a,b)=>a+b)/bassRange*25;
+	let delta=Math.floor(bass-lastBass);
+	if(delta>0){
+		let type=0;
+		const window=1000*2;
+		let target=4,windowCutoff=Date.now()-window;
+		for(let x of lastDelta){
+			if(x[1]<windowCutoff){
+				x[0]=0;
+			}
+		}
+		lastDelta.sort((a,b)=>a[0]-b[0]);
+		while(lastDelta.length>0&&lastDelta[0][0]<=0){
+			lastDelta.splice(0,1);
+		}
+
+		let average=lastDelta.reduce((s,x)=>s+x[0],0)/lastDelta.length;
+		let rank=lastDelta.reduce((s,x)=>s+(x[0]>=delta?1:0),0);
+		if (volume>=40){
+			target=6;
+		}
+		if(rank<target){
+			lastDelta.push([delta,Date.now()]);
+			type=1;
+		}
+		if(rank<1){
+			type=2;
+		}
+		if(volume>=50){
+			if(rank<1){
+				type=3;
+			}
+			else if(rank<3){
+				type=2;
+			}
+		}
+		if(volume>=60){
+			if(rank<2){
+				type=3;
+			}
+			else if(rank<4){
+				type=2;
+			}
+		}
+
+		tempPower=shellSizeSelector;
+		shellSizeSelector=3;
+		if(type>=2&&Math.random()<0.15){
+			if(type==3){
+				type=1;
+				shellSizeSelector=16;
+			}
+			else{
+				shellSizeSelector=8;
+			}
+		}
+		let rand=Math.random();
+		if(type==3){
+			if(rand<0.45){
+				seqSmallBarrage();
+			}
+			else if(rand<0.85){
+				seqPyramid();
+			}
+			else{
+				seqFinale();
+			}
+		}
+		if(type==2){
+			if(rand<0.65){
+				seqTwoRandom();
+			}
+			else{
+				seqTriple();
+			}
+		}
+		if(type==1){
+			seqRandomShell();
+		}
+		shellSizeSelector=tempPower;
+	}
+	lastBass=bass;
 }
-function livelyCurrentTrack(data) {
+function livelyCurrentTrack(data) {//doesn't work with musicbee, and windows media overlay is pretty dumb anyway
 	let obj = JSON.parse(data);
-	console.log(obj!=null,obj);
-	_audioReact=audioReactEnabled&&obj!=null;
-	autoLaunch=autoLaunchEnabled&&!_audioReact;
+	//audioPlaying=obj!=null;
 }
 
 function livelyPropertyListener(name, val) {

@@ -542,18 +542,19 @@ function seqSmallBarrage() {
 }
 seqSmallBarrage.cooldown = 15000;
 seqSmallBarrage.lastCalled = Date.now();
+
 function seqFinale() {
 	finaleSelector=true;
 	return 10;
 }
-
 
 const sequences = [
 	seqRandomShell,
 	seqTwoRandom,
 	seqTriple,
 	seqPyramid,
-	seqSmallBarrage
+	seqSmallBarrage,
+	seqFinale,
 ];
 
 let isFirstSeq = true;
@@ -574,12 +575,14 @@ function startSequence() {
 		}
 	}
 	
-	
-	if (rand < 0.08 && Date.now() - seqSmallBarrage.lastCalled > seqSmallBarrage.cooldown) {
+	if (rand<0.5){
+		return seqFinale();
+	}
+	if (rand < 0.15 && Date.now() - seqSmallBarrage.lastCalled > seqSmallBarrage.cooldown) {
 		return seqSmallBarrage();
 	}
 	
-	if (rand < 0.1) {
+	if (rand < 0.2) {
 		return seqPyramid();
 	}
 	

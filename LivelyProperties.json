@@ -1,0 +1,27 @@
+{
+  "audioReact": {
+    "type": "checkbox",
+    "value": true,
+    "text": "Audio Visualiser"
+  },
+  "speed": {
+    "max": 30,
+    "min": -30,
+    "step": 2,
+    "text": "Speed",
+    "type": "slider",
+    "value": 0
+  },
+  "bgImgChk": {
+    "type": "checkbox",
+    "value": false,
+    "text": "Background Image Enabled"
+  },
+  "imgSelect": {
+    "type": "folderDropdown",
+    "value": "",
+    "text": "Image Select",
+    "filter": "*.jpg|*.png|*.jpeg",
+    "folder": "wallpapers"
+  },
+}

@@ -4,6 +4,12 @@
     "value": true,
     "text": "Audio Visualiser"
   },
+  "autoLaunch": {
+    "type": "checkbox",
+    "value": false,
+    "text": "Auto Fire",
+    "help":"Launches sequences of fireworks automatically. Sit back and enjoy the show, or disable to have full control."
+  },
   "quality": {
     "type": "dropdown",
     "value": 2,
@@ -19,10 +25,19 @@
     "max": 16,
     "min": 2,
     "step": 1,
-    "text": "Shell Size",
+    "text": "Shell Power",
 		"help": "The size of the fireworks. Modeled after real firework shell sizes, larger shells have bigger bursts with more stars, and sometimes more complex effects. However, larger shells also require more processing power and may cause lag.",
     "type": "slider",
     "value": 3
+  },
+  "scaleFactor":{
+    "max": 20,
+    "min": 5,
+    "step": 1,
+    "text": "Shell Size",
+		"help": "Allows scaling the size of all fireworks, essentially moving you closer or farther away. For larger shell sizes, it can be convenient to decrease the scale a bit, especially on phones or tablets.",
+    "type": "slider",
+    "value": 10
   },
   "speed": {
     "max": 30,
@@ -31,6 +46,12 @@
     "text": "Speed",
     "type": "slider",
     "value": 0
+  },
+  "longExposure": {
+    "type": "checkbox",
+    "value": true,
+    "text": "Open Shutter",
+    "help":"Experimental effect that preserves long streaks of light, similar to leaving a camera shutter open."
   },
   "bgImgChk": {
     "type": "checkbox",

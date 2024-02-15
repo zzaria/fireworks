@@ -54,72 +54,20 @@ const shellNameSelector = () => 'Random';
 let shellSizeSelector = 3;
 const finaleSelector = () => false;
 let skyLightingSelector = SKY_LIGHT_NORMAL;
-const scaleFactorSelector = () => 1;
+let scaleFactorSelector = 1;
 
 const helpContent = {
-	shellSize: {
-		header: 'Shell Size',
-		body: 'The size of the fireworks. Modeled after real firework shell sizes, larger shells have bigger bursts with more stars, and sometimes more complex effects. However, larger shells also require more processing power and may cause lag.'
-	},
-	scaleFactor: {
-		header: 'Scale',
-		body: 'Allows scaling the size of all fireworks, essentially moving you closer or farther away. For larger shell sizes, it can be convenient to decrease the scale a bit, especially on phones or tablets.'
-	},
-	autoLaunch: {
-		header: 'Auto Fire',
-		body: 'Launches sequences of fireworks automatically. Sit back and enjoy the show, or disable to have full control.'
-	},
+
 	finaleMode: {
 		header: 'Finale Mode',
 		body: 'Launches intense bursts of fireworks. May cause lag. Requires "Auto Fire" to be enabled.'
 	},
-	hideControls: {
-		header: 'Hide Controls',
-		body: 'Hides the translucent controls along the top of the screen. Useful for screenshots, or just a more seamless experience. While hidden, you can still tap the top-right corner to re-open this menu.'
-	},
-	fullscreen: {
-		header: 'Fullscreen',
-		body: 'Toggles fullscreen mode.'
-	},
-	longExposure: {
-		header: 'Open Shutter',
-		body: 'Experimental effect that preserves long streaks of light, similar to leaving a camera shutter open.'
-	}
 };
 
 
 const appNodes = {
 	stageContainer: '.stage-container',
 	canvasContainer: '.canvas-container',
-	controls: '.controls',
-	menu: '.menu',
-	menuInnerWrap: '.menu__inner-wrap',
-	pauseBtn: '.pause-btn',
-	pauseBtnSVG: '.pause-btn use',
-	soundBtn: '.sound-btn',
-	soundBtnSVG: '.sound-btn use',
-	shellType: '.shell-type',
-	shellTypeLabel: '.shell-type-label',
-	shellSize: '.shell-size',
-	shellSizeLabel: '.shell-size-label',
-	quality: '.quality-ui',
-	qualityLabel: '.quality-ui-label',
-	skyLighting: '.sky-lighting',
-	skyLightingLabel: '.sky-lighting-label',
-	scaleFactor: '.scaleFactor',
-	scaleFactorLabel: '.scaleFactor-label',
-	autoLaunch: '.auto-launch',
-	autoLaunchLabel: '.auto-launch-label',
-	finaleModeFormOption: '.form-option--finale-mode',
-	finaleMode: '.finale-mode',
-	finaleModeLabel: '.finale-mode-label',
-	hideControls: '.hide-controls',
-	hideControlsLabel: '.hide-controls-label',
-	fullscreenFormOption: '.form-option--fullscreen',
-	fullscreen: '.fullscreen',
-	fullscreenLabel: '.fullscreen-label',
-	longExposure: '.long-exposure',
-	longExposureLabel: '.long-exposure-label',
 };
 
 Object.keys(appNodes).forEach(key => {
@@ -725,7 +673,7 @@ function handleResize() {
 	appNodes.stageContainer.style.width = containerW + 'px';
 	appNodes.stageContainer.style.height = containerH + 'px';
 	stages.forEach(stage => stage.resize(containerW, containerH));
-	const scaleFactor = scaleFactorSelector();
+	const scaleFactor = scaleFactorSelector;
 	stageW = containerW / scaleFactor;
 	stageH = containerH / scaleFactor;
 }
@@ -881,7 +829,7 @@ function render(speed) {
 		colorSky(speed);
 	}
 
-	const scaleFactor = scaleFactorSelector();
+	const scaleFactor = scaleFactorSelector;
 	trailsCtx.scale(dpr * scaleFactor, dpr * scaleFactor);
 	mainCtx.scale(dpr * scaleFactor, dpr * scaleFactor);
 	trailsCtx.globalCompositeOperation = 'source-over';
@@ -1615,6 +1563,9 @@ function livelyPropertyListener(name, val) {
 	case "audioReact":
 		_audioReact = val;
 		break;
+	case "autoLaunch":
+		autoLaunch = val;
+		break;
 	case "quality":
 		quality = val+1;
 		isLowQuality = quality === QUALITY_LOW;
@@ -1624,10 +1575,16 @@ function livelyPropertyListener(name, val) {
 		break;
 	case "shellSize":
 		shellSizeSelector = val;
-		console.log(shellSizeSelector);
+		break;
+	case "scaleFactor":
+		scaleFactorSelector = val/10;
+		handleResize();
 		break;
 	case "speed":
 		simSpeed = 2**(val/10.0);
+		break;
+	case "longExposure":
+		longExposure = val;
 		break;
 	case "bgImgChk":
 		backgroundImageEnabled=val;

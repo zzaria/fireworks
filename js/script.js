@@ -16,19 +16,15 @@ const MAX_HEIGHT = 4320;
 const GRAVITY = 0.9; 
 let simSpeed = 1; 
 
-function getDefaultScaleFactor() {
-	if (IS_MOBILE) return 0.9;
-	if (IS_HEADER) return 0.75;
-	return 1;
-}
+
 let stageW, stageH;
-let quality = 1;
-let isLowQuality = false;
-let isNormalQuality = true;
-let isHighQuality = false;
 const QUALITY_LOW = 1;
 const QUALITY_NORMAL = 2;
 const QUALITY_HIGH = 3;
+let quality = QUALITY_HIGH;
+let isLowQuality = false;
+let isNormalQuality = false;
+let isHighQuality = true;
 const SKY_LIGHT_NONE = 0;
 const SKY_LIGHT_DIM = 1;
 const SKY_LIGHT_NORMAL = 2;
@@ -50,212 +46,20 @@ const stages = [
 	mainStage
 ];
 
-function fullscreenEnabled() {
-	return fscreen.fullscreenEnabled;
-}
 
-function isFullscreen() {
-	return !!fscreen.fullscreenElement;
-}
-
-function toggleFullscreen() {
-	if (fullscreenEnabled()) {
-		if (isFullscreen()) {
-			fscreen.exitFullscreen();
-		} else {
-			fscreen.requestFullscreen(document.documentElement);
-		}
-	}
-}
-
-fscreen.addEventListener('fullscreenchange', () => {
-	store.setState({ fullscreen: isFullscreen() });
-});
-
-const store = {
-	_listeners: new Set(),
-	_dispatch(prevState) {
-		this._listeners.forEach(listener => listener(this.state, prevState))
-	},
-	
-	state: {
-		paused: true,
-		soundEnabled: false,
-		menuOpen: false,
-		openHelpTopic: null,
-		fullscreen: isFullscreen(),
-		config: {
-			quality: String(IS_HIGH_END_DEVICE ? QUALITY_HIGH : QUALITY_NORMAL), // will be mirrored to a global variable named `quality` in `configDidUpdate`, for perf.
-			shell: 'Random',
-			size: IS_DESKTOP
-				? '3' 
-				: IS_HEADER 
-					? '1.2' 
-					: '2', 
-			autoLaunch: true,
-			finale: false,
-			skyLighting: SKY_LIGHT_NORMAL + '',
-			hideControls: IS_HEADER,
-			longExposure: false,
-			scaleFactor: getDefaultScaleFactor()
-		}
-	},
-	
-	setState(nextState) {
-		const prevState = this.state;
-		this.state = Object.assign({}, this.state, nextState);
-		this._dispatch(prevState);
-		this.persist();
-	},
-	
-	subscribe(listener) {
-		this._listeners.add(listener);
-		return () => this._listeners.remove(listener);
-	},
-
-	load() {
-		const serializedData = localStorage.getItem('cm_fireworks_data');
-		if (serializedData) {
-			const {
-				schemaVersion,
-				data
-			} = JSON.parse(serializedData);
-			
-			const config = this.state.config;
-			switch(schemaVersion) {
-				case '1.1':
-					config.quality = data.quality;
-					config.size = data.size;
-					config.skyLighting = data.skyLighting;
-					break;
-				case '1.2':
-					config.quality = data.quality;
-					config.size = data.size;
-					config.skyLighting = data.skyLighting;
-					config.scaleFactor = data.scaleFactor;
-					break;
-				default:
-					throw new Error('version switch should be exhaustive');
-			}
-			console.log(`Loaded config (schema version ${schemaVersion})`);
-		}
-		else if (localStorage.getItem('schemaVersion') === '1') {
-			let size;
-			try {
-				const sizeRaw = localStorage.getItem('configSize');
-				size = typeof sizeRaw === 'string' && JSON.parse(sizeRaw);
-			}
-			catch(e) {
-				console.log('Recovered from error parsing saved config:');
-				console.error(e);
-				return;
-			}
-			const sizeInt = parseInt(size, 10);
-			if (sizeInt >= 0 && sizeInt <= 4) {
-				this.state.config.size = String(sizeInt);
-			}
-		}
-	},
-	
-	persist() {
-		const config = this.state.config;
-		localStorage.setItem('cm_fireworks_data', JSON.stringify({
-			schemaVersion: '1.2',
-			data: {
-				quality: config.quality,
-				size: config.size,
-				skyLighting: config.skyLighting,
-				scaleFactor: config.scaleFactor
-			}
-		}));
-	}
-};
-
-
-if (!IS_HEADER) {
-	store.load();
-}
-
-function togglePause(toggle) {
-	const paused = store.state.paused;
-	let newValue;
-	if (typeof toggle === 'boolean') {
-		newValue = toggle;
-	} else {
-		newValue = !paused;
-	}
-
-	if (paused !== newValue) {
-		store.setState({ paused: newValue });
-	}
-}
-
-function toggleSound(toggle) {
-	if (typeof toggle === 'boolean') {
-		store.setState({ soundEnabled: toggle });
-	} else {
-		store.setState({ soundEnabled: !store.state.soundEnabled });
-	}
-}
-
-function toggleMenu(toggle) {
-	if (typeof toggle === 'boolean') {
-		store.setState({ menuOpen: toggle });
-	} else {
-		store.setState({ menuOpen: !store.state.menuOpen });
-	}
-}
-
-function updateConfig(nextConfig) {
-	nextConfig = nextConfig || getConfigFromDOM();
-	store.setState({
-		config: Object.assign({}, store.state.config, nextConfig)
-	});
-	
-	configDidUpdate();
-}
-
-function configDidUpdate() {
-	const config = store.state.config;
-	
-	quality = qualitySelector();
-	isLowQuality = quality === QUALITY_LOW;
-	isNormalQuality = quality === QUALITY_NORMAL;
-	isHighQuality = quality === QUALITY_HIGH;
-	
-	if (skyLightingSelector() === SKY_LIGHT_NONE) {
-		appNodes.canvasContainer.style.backgroundColor = '#000';
-	}
-	
-	Spark.drawWidth = quality === QUALITY_HIGH ? 0.75 : 1;
-}
-
-const isRunning = (state=store.state) => !state.paused && !state.menuOpen;
-const soundEnabledSelector = (state=store.state) => state.soundEnabled;
-const canPlaySoundSelector = (state=store.state) => isRunning(state) && soundEnabledSelector(state);
-const qualitySelector = () => +store.state.config.quality;
-const shellNameSelector = () => store.state.config.shell;
-const shellSizeSelector = () => +store.state.config.size;
-const finaleSelector = () => store.state.config.finale;
-const skyLightingSelector = () => +store.state.config.skyLighting;
-const scaleFactorSelector = () => store.state.config.scaleFactor;
+const isRunning = ()=>true;
+const soundEnabledSelector = ()=>false;
+const canPlaySoundSelector = ()=>false;
+const shellNameSelector = () => 'Random';
+const shellSizeSelector = () => 3;
+const finaleSelector = () => false;
+let skyLightingSelector = SKY_LIGHT_NORMAL;
+const scaleFactorSelector = () => 1;
 
 const helpContent = {
-	shellType: {
-		header: 'Shell Type',
-		body: 'The type of firework that will be launched. Select "Random" for a nice assortment!'
-	},
 	shellSize: {
 		header: 'Shell Size',
 		body: 'The size of the fireworks. Modeled after real firework shell sizes, larger shells have bigger bursts with more stars, and sometimes more complex effects. However, larger shells also require more processing power and may cause lag.'
-	},
-	quality: {
-		header: 'Quality',
-		body: 'Overall graphics quality. If the animation is not running smoothly, try lowering the quality. High quality greatly increases the amount of sparks rendered and may cause lag.'
-	},
-	skyLighting: {
-		header: 'Sky Lighting',
-		body: 'Illuminates the background as fireworks explode. If the background looks too bright on your screen, try setting it to "Dim" or "None".'
 	},
 	scaleFactor: {
 		header: 'Scale',
@@ -283,18 +87,6 @@ const helpContent = {
 	}
 };
 
-const nodeKeyToHelpKey = {
-	shellTypeLabel: 'shellType',
-	shellSizeLabel: 'shellSize',
-	qualityLabel: 'quality',
-	skyLightingLabel: 'skyLighting',
-	scaleFactorLabel: 'scaleFactor',
-	autoLaunchLabel: 'autoLaunch',
-	finaleModeLabel: 'finaleMode',
-	hideControlsLabel: 'hideControls',
-	fullscreenLabel: 'fullscreen',
-	longExposureLabel: 'longExposure'
-};
 
 const appNodes = {
 	stageContainer: '.stage-container',
@@ -328,52 +120,13 @@ const appNodes = {
 	fullscreenLabel: '.fullscreen-label',
 	longExposure: '.long-exposure',
 	longExposureLabel: '.long-exposure-label',
-	helpModal: '.help-modal',
-	helpModalOverlay: '.help-modal__overlay',
-	helpModalHeader: '.help-modal__header',
-	helpModalBody: '.help-modal__body',
-	helpModalCloseBtn: '.help-modal__close-btn'
 };
 
 Object.keys(appNodes).forEach(key => {
 	appNodes[key] = document.querySelector(appNodes[key]);
 });
 
-if (!fullscreenEnabled()) {
-	appNodes.fullscreenFormOption.classList.add('remove');
-}
 
-function renderApp(state) {
-	const pauseBtnIcon = `#icon-${state.paused ? 'play' : 'pause'}`;
-	const soundBtnIcon = `#icon-sound-${soundEnabledSelector() ? 'on' : 'off'}`;
-	appNodes.pauseBtnSVG.setAttribute('href', pauseBtnIcon);
-	appNodes.pauseBtnSVG.setAttribute('xlink:href', pauseBtnIcon);
-	appNodes.soundBtnSVG.setAttribute('href', soundBtnIcon);
-	appNodes.soundBtnSVG.setAttribute('xlink:href', soundBtnIcon);
-	appNodes.controls.classList.toggle('hide', state.menuOpen || state.config.hideControls);
-	appNodes.canvasContainer.classList.toggle('blur', state.menuOpen);
-	appNodes.menu.classList.toggle('hide', !state.menuOpen);
-	appNodes.finaleModeFormOption.style.opacity = state.config.autoLaunch ? 1 : 0.32;
-	appNodes.quality.value = state.config.quality;
-	appNodes.shellType.value = state.config.shell;
-	appNodes.shellSize.value = state.config.size;
-	appNodes.autoLaunch.checked = state.config.autoLaunch;
-	appNodes.finaleMode.checked = state.config.finale;
-	appNodes.skyLighting.value = state.config.skyLighting;
-	appNodes.hideControls.checked = state.config.hideControls;
-	appNodes.fullscreen.checked = state.fullscreen;
-	appNodes.longExposure.checked = state.config.longExposure;
-	appNodes.scaleFactor.value = state.config.scaleFactor.toFixed(2);
-	appNodes.menuInnerWrap.style.opacity = state.openHelpTopic ? 0.12 : 1;
-	appNodes.helpModal.classList.toggle('active', !!state.openHelpTopic);
-	if (state.openHelpTopic) {
-		const { header, body } = helpContent[state.openHelpTopic];
-		appNodes.helpModalHeader.textContent = header;
-		appNodes.helpModalBody.textContent = body;
-	}
-}
-
-store.subscribe(renderApp);
 
 function handleStateChange(state, prevState) {
 	const canPlaySound = canPlaySoundSelector(state);
@@ -388,52 +141,7 @@ function handleStateChange(state, prevState) {
 	}
 }
 
-store.subscribe(handleStateChange);
 
-
-function getConfigFromDOM() {
-	return {
-		quality: appNodes.quality.value,
-		shell: appNodes.shellType.value,
-		size: appNodes.shellSize.value,
-		autoLaunch: appNodes.autoLaunch.checked,
-		finale: appNodes.finaleMode.checked,
-		skyLighting: appNodes.skyLighting.value,
-		longExposure: appNodes.longExposure.checked,
-		hideControls: appNodes.hideControls.checked,
-		scaleFactor: parseFloat(appNodes.scaleFactor.value)
-	};
-};
-
-const updateConfigNoEvent = () => updateConfig();
-appNodes.quality.addEventListener('input', updateConfigNoEvent);
-appNodes.shellType.addEventListener('input', updateConfigNoEvent);
-appNodes.shellSize.addEventListener('input', updateConfigNoEvent);
-appNodes.autoLaunch.addEventListener('click', () => setTimeout(updateConfig, 0));
-appNodes.finaleMode.addEventListener('click', () => setTimeout(updateConfig, 0));
-appNodes.skyLighting.addEventListener('input', updateConfigNoEvent);
-appNodes.longExposure.addEventListener('click', () => setTimeout(updateConfig, 0));
-appNodes.hideControls.addEventListener('click', () => setTimeout(updateConfig, 0));
-appNodes.fullscreen.addEventListener('click', () => setTimeout(toggleFullscreen, 0));
-appNodes.scaleFactor.addEventListener('input', () => {
-	updateConfig();
-	handleResize();
-});
-
-Object.keys(nodeKeyToHelpKey).forEach(nodeKey => {
-	const helpKey = nodeKeyToHelpKey[nodeKey];
-	appNodes[nodeKey].addEventListener('click', () => {
-		store.setState({ openHelpTopic: helpKey });
-	});
-});
-
-appNodes.helpModalCloseBtn.addEventListener('click', () => {
-	store.setState({ openHelpTopic: null });
-});
-
-appNodes.helpModalOverlay.addEventListener('click', () => {
-	store.setState({ openHelpTopic: null });
-});
 
 const COLOR_NAMES = Object.keys(COLOR);
 const COLOR_CODES = COLOR_NAMES.map(colorName => COLOR[colorName]);
@@ -699,40 +407,7 @@ const shellTypes = {
 const shellNames = Object.keys(shellTypes);
 
 function init() {
-	document.querySelector('.loading-init').remove();
 	appNodes.stageContainer.classList.remove('remove');
-
-	function setOptionsForSelect(node, options) {
-		node.innerHTML = options.reduce((acc, opt) => acc += `<option value="${opt.value}">${opt.label}</option>`, '');
-	}
-
-	let options = '';
-	shellNames.forEach(opt => options += `<option value="${opt}">${opt}</option>`);
-	appNodes.shellType.innerHTML = options;
-	options = '';
-	['3"', '4"', '6"', '8"', '12"', '16"'].forEach((opt, i) => options += `<option value="${i}">${opt}</option>`);
-	appNodes.shellSize.innerHTML = options;
-	
-	setOptionsForSelect(appNodes.quality, [
-		{ label: 'Low', value: QUALITY_LOW },
-		{ label: 'Normal', value: QUALITY_NORMAL },
-		{ label: 'High', value: QUALITY_HIGH }
-	]);
-	
-	setOptionsForSelect(appNodes.skyLighting, [
-		{ label: 'None', value: SKY_LIGHT_NONE },
-		{ label: 'Dim', value: SKY_LIGHT_DIM },
-		{ label: 'Normal', value: SKY_LIGHT_NORMAL }
-	]);
-
-	setOptionsForSelect(
-		appNodes.scaleFactor,
-		[0.5, 0.62, 0.75, 0.9, 1.0, 1.5, 2.0]
-		.map(value => ({ value: value.toFixed(2), label: `${value*100}%` }))
-	);
-	togglePause(false);
-	renderApp(store.state);
-	configDidUpdate();
 }
 
 function fitShellPositionInBoundsH(position) {
@@ -1086,7 +761,7 @@ function updateGlobals(timeStep, lag) {
 		}
 	}
 
-	if (store.state.config.autoLaunch) {
+	if (autoLaunch) {
 		autoLaunchTime -= timeStep;
 		if (autoLaunchTime <= 0) {
 			autoLaunchTime = startSequence() * 1.25;
@@ -1206,7 +881,7 @@ function render(speed) {
 	const trailsCtx = trailsStage.ctx;
 	const mainCtx = mainStage.ctx;
 	
-	if (skyLightingSelector() !== SKY_LIGHT_NONE) {
+	if (skyLightingSelector !== SKY_LIGHT_NONE) {
 		colorSky(speed);
 	}
 
@@ -1214,7 +889,7 @@ function render(speed) {
 	trailsCtx.scale(dpr * scaleFactor, dpr * scaleFactor);
 	mainCtx.scale(dpr * scaleFactor, dpr * scaleFactor);
 	trailsCtx.globalCompositeOperation = 'source-over';
-	trailsCtx.fillStyle = `rgba(0, 0, 0, ${store.state.config.longExposure ? 0.0025 : 0.175 * speed})`;
+	trailsCtx.fillStyle = `rgba(0, 0, 0, ${longExposure ? 0.0025 : 0.175 * speed})`;
 	trailsCtx.fillRect(0, 0, width, height);
 	mainCtx.clearRect(0, 0, width, height);
 
@@ -1280,7 +955,7 @@ function render(speed) {
 const currentSkyColor = { r: 0, g: 0, b: 0 };
 const targetSkyColor = { r: 0, g: 0, b: 0 };
 function colorSky(speed) {
-	const maxSkySaturation = skyLightingSelector() * 15;
+	const maxSkySaturation = skyLightingSelector * 15;
 	const maxStarCount = 500;
 	let totalStarCount = 0;
 	targetSkyColor.r = 0;
@@ -1917,14 +1592,9 @@ const soundManager = {
 	}
 };
 
-function setLoadingStatus(status) {
-	document.querySelector('.loading-init__status').textContent = status;
-}
-
 if (IS_HEADER) {
 	init();
 } else {
-	setLoadingStatus('');
 	setTimeout(() => {
 		soundManager.preload()
 		.then(
@@ -1937,8 +1607,14 @@ if (IS_HEADER) {
 	}, 0);
 }
 
+let _audioReact=true;
+let backgroundImageEnabled=false;
+let backgroundImage="";
+let autoLaunch=true;
+let longExposure=false;
+let paused=false;
 function livelyAudioListener(audioArray) {
-	if (audioArray[0] === 0 || _isSleep == true) {
+	if (audioArray[0] === 0) {
 	  _runRandom = true;
 	  return;
 	}
@@ -1947,13 +1623,17 @@ function livelyAudioListener(audioArray) {
 	}
 }
 
-let _audioReact=true;
-let backgroundImageEnabled=false;
-let backgroundImage="";
 function livelyPropertyListener(name, val) {
 	switch (name) {
 	case "audioReact":
 		_audioReact = val;
+		break;
+	case "quality":
+		quality = val+1;
+		isLowQuality = quality === QUALITY_LOW;
+		isNormalQuality = quality === QUALITY_NORMAL;
+		isHighQuality = quality === QUALITY_HIGH;
+		Spark.drawWidth = quality === QUALITY_HIGH ? 0.75 : 1;
 		break;
 	case "speed":
 		simSpeed = 2**(val/10.0);
@@ -1966,6 +1646,13 @@ function livelyPropertyListener(name, val) {
 		if (val != null) backgroundImage = `url('${val.replace("\\", "/")}')`;
 		if(backgroundImageEnabled){
 			appNodes.canvasContainer.style.backgroundImage=backgroundImage;
+		}
+		break;
+	case "skyLighting":
+		skyLightingSelector=val;
+		if (skyLightingSelector === SKY_LIGHT_NONE) {
+			appNodes.canvasContainer.style.backgroundColor = '#000';
+			appNodes.canvasContainer.style.boxShadow="";
 		}
 		break;
 	}

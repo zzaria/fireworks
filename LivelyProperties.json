@@ -4,6 +4,17 @@
     "value": true,
     "text": "Audio Visualiser"
   },
+  "quality": {
+    "type": "dropdown",
+    "value": 2,
+    "text": "Quality",
+    "help":"Overall graphics quality. If the animation is not running smoothly, try lowering the quality. High quality greatly increases the amount of sparks rendered and may cause lag.",
+    "items": [
+      "Low",
+      "Medium",
+      "High",
+    ]
+  },
   "speed": {
     "max": 30,
     "min": -30,
@@ -23,5 +34,16 @@
     "text": "Image Select",
     "filter": "*.jpg|*.png|*.jpeg",
     "folder": "wallpapers"
+  },
+  "skyLighting": {
+    "type": "dropdown",
+    "value": 2,
+    "text": "Sky Glow",
+    "help":"Illuminates the background as fireworks explode. If the background looks too bright on your screen, try setting it to Dim or None.",
+    "items": [
+      "None",
+      "Dim",
+      "Normal",
+    ]
   },
 }

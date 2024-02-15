@@ -48,8 +48,7 @@ const stages = [
 
 
 const isRunning = ()=>true;
-const soundEnabledSelector = ()=>false;
-const canPlaySoundSelector = ()=>false;
+let canPlaySoundSelector = true;
 const shellNameSelector = () => 'Random';
 let shellSizeSelector = 3;
 const finaleSelector = () => false;
@@ -603,67 +602,17 @@ function startSequence() {
 	}
 }
 
-let activePointerCount = 0;
 let isUpdatingSpeed = false;
 
 function handlePointerStart(event) {
-	activePointerCount++;
-	const btnSize = 50;
-	
-	if (event.y < btnSize) {
-		if (event.x < btnSize) {
-			togglePause();
-			return;
-		}
-		if (event.x > mainStage.width/2 - btnSize/2 && event.x < mainStage.width/2 + btnSize/2) {
-			toggleSound();
-			return;
-		}
-		if (event.x > mainStage.width - btnSize) {
-			toggleMenu();
-			return;
-		}
-	}
 	
 	if (!isRunning()) return;
-	
-	if (updateSpeedFromEvent(event)) {
-		isUpdatingSpeed = true;
-	}
-	else if (event.onCanvas) {
+	if (event.onCanvas) {
 		launchShellFromConfig(event);
 	}
 }
 
-function handlePointerEnd(event) {
-	activePointerCount--;
-	isUpdatingSpeed = false;
-}
-
-function handlePointerMove(event) {
-	if (!isRunning()) return;
-	
-	if (isUpdatingSpeed) {
-		updateSpeedFromEvent(event);
-	}
-}
-
-function handleKeydown(event) {
-	if (event.keyCode === 80) {
-		togglePause();
-	}
-	else if (event.keyCode === 79) {
-		toggleMenu();
-	}
-	else if (event.keyCode === 27) {
-		toggleMenu(false);
-	}
-}
-
 mainStage.addEventListener('pointerstart', handlePointerStart);
-mainStage.addEventListener('pointerend', handlePointerEnd);
-mainStage.addEventListener('pointermove', handlePointerMove);
-window.addEventListener('keydown', handleKeydown);
 
 function handleResize() {
 	const w = window.innerWidth;
@@ -684,17 +633,6 @@ let currentFrame = 0;
 let speedBarOpacity = 0;
 let autoLaunchTime = 0;
 
-function updateSpeedFromEvent(event) {
-	if (isUpdatingSpeed || event.y >= mainStage.height - 44) {
-		const edge = 16;
-		const newSpeed = (event.x - edge) / (mainStage.width - edge * 2);
-		simSpeed = Math.min(Math.max(newSpeed, 0), 1);
-		speedBarOpacity = 1;
-		return true;
-	}
-	return false;
-}
-
 function updateGlobals(timeStep, lag) {
 	currentFrame++;
 
@@ -706,10 +644,9 @@ function updateGlobals(timeStep, lag) {
 	}
 
 	if (autoLaunch) {
-		autoLaunchTime -= timeStep;
+		autoLaunchTime -= timeStep*autoLaunchFreq;
 		if (autoLaunchTime <= 0) {
 			autoLaunchTime = startSequence() * 1.25;
-			autoLaunchTime/=2; //x
 		}
 	}
 }
@@ -1500,7 +1437,7 @@ const soundManager = {
 	_lastSmallBurstTime: 0,
 	playSound(type, scale=1) {
 		scale = MyMath.clamp(scale, 0, 1);
-		if (!canPlaySoundSelector() || simSpeed < 0.95) {
+		if (!canPlaySoundSelector || simSpeed < 0.95) {
 			return;
 		}
 		if (type === 'burstSmall') {
@@ -1548,11 +1485,8 @@ let backgroundImage="";
 let autoLaunch=true;
 let longExposure=false;
 let paused=false;
+let autoLaunchFreq=1;
 function livelyAudioListener(audioArray) {
-	if (audioArray[0] === 0) {
-	  _runRandom = true;
-	  return;
-	}
 	if (!_audioReact) {
 	  return;
 	}
@@ -1560,11 +1494,17 @@ function livelyAudioListener(audioArray) {
 
 function livelyPropertyListener(name, val) {
 	switch (name) {
+	case "sound":
+		canPlaySoundSelector = val;
+		break;
 	case "audioReact":
 		_audioReact = val;
 		break;
 	case "autoLaunch":
 		autoLaunch = val;
+		break;
+	case "autoLaunchFreq":
+		autoLaunchFreq = 2**(val/10.0);
 		break;
 	case "quality":
 		quality = val+1;

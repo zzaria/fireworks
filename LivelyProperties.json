@@ -1,4 +1,9 @@
 {
+  "sound": {
+    "type": "checkbox",
+    "value": true,
+    "text": "Firework Sounds"
+  },
   "audioReact": {
     "type": "checkbox",
     "value": true,
@@ -6,9 +11,17 @@
   },
   "autoLaunch": {
     "type": "checkbox",
-    "value": false,
+    "value": true,
     "text": "Auto Fire",
     "help":"Launches sequences of fireworks automatically. Sit back and enjoy the show, or disable to have full control."
+  },
+  "autoLaunchFreq": {
+    "max": 30,
+    "min": -30,
+    "step": 5,
+    "text": "Autofire frequency",
+    "type": "slider",
+    "value": 0
   },
   "quality": {
     "type": "dropdown",
@@ -49,9 +62,20 @@
   },
   "longExposure": {
     "type": "checkbox",
-    "value": true,
+    "value": false,
     "text": "Open Shutter",
     "help":"Experimental effect that preserves long streaks of light, similar to leaving a camera shutter open."
+  },
+  "skyLighting": {
+    "type": "dropdown",
+    "value": 2,
+    "text": "Sky Glow",
+    "help":"Illuminates the background as fireworks explode. If the background looks too bright on your screen, try setting it to Dim or None.",
+    "items": [
+      "None",
+      "Dim",
+      "Normal",
+    ]
   },
   "bgImgChk": {
     "type": "checkbox",
@@ -64,16 +88,5 @@
     "text": "Image Select",
     "filter": "*.jpg|*.png|*.jpeg",
     "folder": "wallpapers"
-  },
-  "skyLighting": {
-    "type": "dropdown",
-    "value": 2,
-    "text": "Sky Glow",
-    "help":"Illuminates the background as fireworks explode. If the background looks too bright on your screen, try setting it to Dim or None.",
-    "items": [
-      "None",
-      "Dim",
-      "Normal",
-    ]
   },
 }

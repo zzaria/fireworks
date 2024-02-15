@@ -51,7 +51,7 @@ const isRunning = ()=>true;
 let canPlaySoundSelector = true;
 const shellNameSelector = () => 'Random';
 let shellSizeSelector = 3;
-const finaleSelector = () => false;
+const finaleSelector = false;
 let skyLightingSelector = SKY_LIGHT_NORMAL;
 let scaleFactorSelector = 1;
 
@@ -542,6 +542,10 @@ function seqSmallBarrage() {
 }
 seqSmallBarrage.cooldown = 15000;
 seqSmallBarrage.lastCalled = Date.now();
+function seqFinale() {
+	finaleSelector=true;
+	return 10;
+}
 
 
 const sequences = [
@@ -557,20 +561,7 @@ const finaleCount = 32;
 let currentFinaleCount = 0;
 function startSequence() {
 	const rand = Math.random();
-
-	if (isFirstSeq) {
-		isFirstSeq = false;
-		if (IS_HEADER) {
-			return seqTwoRandom();
-		}
-		else {
-			const shell = new Shell(crysanthemumShell(shellSizeSelector));
-			shell.launch(0.5, 0.5);
-			return 2400;
-		}
-	}
-	
-	if (finaleSelector()) {
+	if (finaleSelector) {
 		seqRandomFastShell();
 		if (currentFinaleCount < finaleCount) {
 			currentFinaleCount++;
@@ -578,7 +569,8 @@ function startSequence() {
 		}
 		else {
 			currentFinaleCount = 0;
-			return 6000;
+			finaleSelector=false;
+			return 5000;
 		}
 	}
 	
@@ -1479,17 +1471,25 @@ if (IS_HEADER) {
 	soundManager.preload()
 }
 
+//let audioReactEnabled=true;
 let _audioReact=true;
 let backgroundImageEnabled=false;
 let backgroundImage="";
-let autoLaunch=true;
 let longExposure=false;
 let paused=false;
+//let autoLaunchEnabled=true;
 let autoLaunchFreq=1;
+let autoLaunch=true;
 function livelyAudioListener(audioArray) {
 	if (!_audioReact) {
 	  return;
 	}
+}
+function livelyCurrentTrack(data) {
+	let obj = JSON.parse(data);
+	console.log(obj!=null,obj);
+	_audioReact=audioReactEnabled&&obj!=null;
+	autoLaunch=autoLaunchEnabled&&!_audioReact;
 }
 
 function livelyPropertyListener(name, val) {

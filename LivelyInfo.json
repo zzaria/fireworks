@@ -1,6 +1,6 @@
 {
   "Title": "Fireworks",
   "Desc": "Fluid simulation using WebGL, reacts with system audio & cursor.",
-  "Arguments": "--audio --pause-event true",
+  "Arguments": "--audio --system-nowplaying --pause-event true",
   "FileName": "index.html"
 }

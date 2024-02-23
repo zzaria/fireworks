@@ -318,10 +318,14 @@ function randomShellName() {
 
 function randomShell(size) {
 	if (IS_HEADER) return randomFastShell()(size);
-	return shellTypes[randomShellName()](size);
+	let name=randomShellName();
+	return shellTypes[name](size);
 }
 
 function shellFromConfig(size) {
+	if(size>=10){
+		return randomFastShell()(size);
+	}
 	return shellTypes[shellNameSelector()](size);
 }
 const fastShellBlacklist = ['Falling Leaves', 'Floral', 'Willow'];
